@@ -77,6 +77,7 @@ test_multi_heap_host
 # VIM files
 *.swp
 *.swo
+*.old
 
 # Sublime Text files
 *.sublime-project
