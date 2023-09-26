@@ -43,7 +43,9 @@ FontxFile fx32M[2];
 static TFT_t dev;
 static const char *TAG = "GUI module";
 
-TickType_t guiTest(TFT_t * dev, FontxFile *fx, int width, int height)
+static void guiTextAlign(int screenWidth, int screenHeight, size_t stringLen, uint8_t fontWidth, uint8_t fontHeight, e_align_t alignment, uint16_t * xPos, uint16_t * yPos);
+
+TickType_t guiBoot(TFT_t * dev, FontxFile *fx, int width, int height)
 {
 	TickType_t startTick, endTick, diffTick;
 	startTick = xTaskGetTickCount();
@@ -58,19 +60,17 @@ TickType_t guiTest(TFT_t * dev, FontxFile *fx, int width, int height)
 	ESP_LOGI(TAG, "fontWidth = %d; fontHeight = %d", fontWidth, fontHeight);
 
 	lcdFillScreen(dev, WHITE_SMOKE);
-	strcpy((char *)ascii, "TRAN MINH NHAT");
-	if(width < height){
-		xPos = ((width - fontWidth) / 2);
-		yPos = (height - (strlen((char *)ascii) * fontWidth)) / 2;
-		lcdSetFontDirection(dev, DIRECTION90);
-	}else{
-		yPos = ((height - fontHeight) / 2);
-		xPos = (width - (strlen((char *)ascii) * fontWidth)) / 2;
-		lcdSetFontDirection(dev, DIRECTION0);
-	}
 	color = BLACK;
-	lcdDrawString(dev, fx, xPos, yPos, ascii, color);
-	vTaskDelay(3000/portTICK_PERIOD_MS);
+
+	const char * textLoading[] = {"Loading .", "Loading ..", "Loading ..."};
+	const uint8_t loadingSize = sizeof(textLoading)/sizeof(textLoading[0]);
+	for(int i = 0; i < loadingSize; i++){
+		strcpy((char *)ascii, textLoading[i]);
+		guiTextAlign(width, height, strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(dev, fx, xPos, yPos, ascii, color);
+		vTaskDelay(800/portTICK_PERIOD_MS);
+		lcdFillScreen(dev, WHITE_SMOKE);
+	}
 
 	endTick = xTaskGetTickCount();
 	diffTick = endTick - startTick;
@@ -78,6 +78,46 @@ TickType_t guiTest(TFT_t * dev, FontxFile *fx, int width, int height)
 	return diffTick;
 }
 
+static void guiTextAlign(int screenWidth, int screenHeight, size_t stringLen, uint8_t fontWidth, uint8_t fontHeight, e_align_t alignment, uint16_t * xPos, uint16_t * yPos)
+{
+	switch(alignment)
+	{
+		case ALIGN_CENTER:
+			if(screenWidth > fontHeight){
+				*xPos = ((screenWidth - fontHeight) / 2) - 1;
+			}else{
+				*xPos = 0;
+			}
+			if(screenHeight > (stringLen * fontWidth)){
+				*yPos = (screenHeight - (stringLen * fontWidth)) / 2;
+			}else{
+				*yPos = 0;
+			}
+			break;
+		case ALIGN_RIGHT:
+			if(screenWidth > fontHeight){
+				*xPos = ((screenWidth - fontHeight) / 2) - 1;
+			}else{
+				*xPos = 0;
+			}
+			if(screenHeight > (stringLen * fontWidth)){
+				*yPos = (screenHeight - (stringLen * fontWidth));
+			}else{
+				*yPos = 0;
+			}
+			break;
+		case ALIGN_LEFT:
+			if(screenWidth > fontHeight){
+				*xPos = ((screenWidth - fontHeight) / 2) - 1;
+			}else{
+				*xPos = 0;
+			}
+			*yPos = 0;
+			break;
+		default:
+			break;
+	}
+}
 void initGUI(void)
 {
     InitFontx(fx16G,"/spiffs/ILGH16XB.FNT",""); // 8x16Dot  Gothic
@@ -97,13 +137,15 @@ void initGUI(void)
     ESP_LOGI(TAG, "Change BGR filter to RGB filter");
     lcdBGRFilter(&dev);
 #endif 
+	lcdSetFontDirection(&dev, DIRECTION90);
+
 }
 
 void GUITask(void *pvParameters)
 {	
 	
     initGUI();
-    guiTest(&dev, fx16G, SCREEN_WIDTH, SCREEN_HEIGHT);
+    guiBoot(&dev, fx16G, SCREEN_WIDTH, SCREEN_HEIGHT);
     while(1){
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }

@@ -35,11 +35,15 @@
 
 #define CONFIG_USE_RGB_COLOR    1
 
-
+typedef enum
+{
+    ALIGN_CENTER = 0,
+    ALIGN_RIGHT,
+    ALIGN_LEFT,
+}e_align_t;
 
 void initGUI(void);
 void GUITask(void *pvParameters);
-TickType_t guiTest(TFT_t * dev, FontxFile *fx, int width, int height);
-
+TickType_t guiBoot(TFT_t * dev, FontxFile *fx, int width, int height);
 
 #endif /* GUI_H_ */

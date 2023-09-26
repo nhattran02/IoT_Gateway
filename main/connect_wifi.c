@@ -130,6 +130,7 @@ static void wifi_init_sta(void)
     vEventGroupDelete(s_wifi_event_group);
 }
 
+
 void wifiTask(void *pvParameters)
 {
     ESP_LOGI(TAG, "WiFi mode: Station");
