@@ -4,15 +4,21 @@
 #include "driver/spi_master.h"
 #include "fontx.h"
 
-#define RED    0xf800
-#define GREEN  0x07e0
-#define BLUE   0x001f
-#define BLACK  0x0000
-#define WHITE  0xffff
-#define GRAY   0x8c51
-#define YELLOW 0xFFE0
-#define CYAN   0x07FF
-#define PURPLE 0xF81F
+/* Refs: https://github.com/newdigate/rgb565_colors */
+
+#define RED    		0xf800
+#define GREEN  		0x07e0
+#define BLUE   		0x001f
+#define BLACK  		0x0000
+#define WHITE  		0xffff
+#define GRAY   		0x8c51
+#define YELLOW 		0xFFE0
+#define CYAN   		0x07FF
+#define PURPLE 		0xF81F
+#define AIR_BLUE	0x5C54
+#define AZURE		0xEFFF
+#define WHITE_SMOKE 0xF7BE
+
 
 typedef enum {DIRECTION0, DIRECTION90, DIRECTION180, DIRECTION270} DIRECTION;
 

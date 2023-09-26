@@ -19,7 +19,7 @@ esp_err_t mountSPIFFS(char * path, char * label, int max_files) {
 		.base_path = path,
 		.partition_label = label,
 		.max_files = max_files,
-		.format_if_mount_failed =true
+		.format_if_mount_failed = true
 	};
 
 	esp_err_t ret = esp_vfs_spiffs_register(&conf);

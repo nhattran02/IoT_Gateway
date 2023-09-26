@@ -37,9 +37,9 @@
 
 
 
-void guiInit(void);
-void GUI(void *pvParameters);
-TickType_t FillTest(TFT_t * dev, int width, int height);
+void initGUI(void);
+void GUITask(void *pvParameters);
+TickType_t guiTest(TFT_t * dev, FontxFile *fx, int width, int height);
 
 
 #endif /* GUI_H_ */

@@ -32,7 +32,7 @@
 #define WIFI_PASSWORD       "44448888a"  
 #define MAXIMUM_RETRY       5
 #define WIFI_LED_STATUS     2
-#define H2E_IDENTIFIER  "IoT_Gateway"
+#define H2E_IDENTIFIER      "IoT_Gateway"
 
 
 /* The event group allows multiple bits for each event, but we only care about two events:
@@ -44,8 +44,7 @@
 
 extern int wifi_connect_status;
 
-void wifi_init_sta(void);
-
+void wifiTask(void *pvParameters);
 
 
 

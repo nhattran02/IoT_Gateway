@@ -43,17 +43,34 @@ FontxFile fx32M[2];
 static TFT_t dev;
 static const char *TAG = "GUI module";
 
-TickType_t FillTest(TFT_t * dev, int width, int height) 
+TickType_t guiTest(TFT_t * dev, FontxFile *fx, int width, int height)
 {
 	TickType_t startTick, endTick, diffTick;
 	startTick = xTaskGetTickCount();
+	uint16_t xPos;
+	uint16_t yPos;
+	uint8_t ascii[30];
+	uint16_t color;
+	uint8_t buffer[FontxGlyphBufSize];
+	uint8_t fontWidth;
+	uint8_t fontHeight;
+	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
+	ESP_LOGI(TAG, "fontWidth = %d; fontHeight = %d", fontWidth, fontHeight);
 
-	lcdFillScreen(dev, RED);
-	vTaskDelay(50);
-	lcdFillScreen(dev, GREEN);
-	vTaskDelay(50);
-	lcdFillScreen(dev, BLUE);
-	vTaskDelay(50);
+	lcdFillScreen(dev, WHITE_SMOKE);
+	strcpy((char *)ascii, "TRAN MINH NHAT");
+	if(width < height){
+		xPos = ((width - fontWidth) / 2);
+		yPos = (height - (strlen((char *)ascii) * fontWidth)) / 2;
+		lcdSetFontDirection(dev, DIRECTION90);
+	}else{
+		yPos = ((height - fontHeight) / 2);
+		xPos = (width - (strlen((char *)ascii) * fontWidth)) / 2;
+		lcdSetFontDirection(dev, DIRECTION0);
+	}
+	color = BLACK;
+	lcdDrawString(dev, fx, xPos, yPos, ascii, color);
+	vTaskDelay(3000/portTICK_PERIOD_MS);
 
 	endTick = xTaskGetTickCount();
 	diffTick = endTick - startTick;
@@ -61,7 +78,7 @@ TickType_t FillTest(TFT_t * dev, int width, int height)
 	return diffTick;
 }
 
-void guiInit(void)
+void initGUI(void)
 {
     InitFontx(fx16G,"/spiffs/ILGH16XB.FNT",""); // 8x16Dot  Gothic
 	InitFontx(fx24G,"/spiffs/ILGH24XB.FNT",""); // 12x24Dot Gothic
@@ -82,10 +99,11 @@ void guiInit(void)
 #endif 
 }
 
-void GUI(void *pvParameters)
-{
-    guiInit();
-    FillTest(&dev, SCREEN_WIDTH, SCREEN_HEIGHT);
+void GUITask(void *pvParameters)
+{	
+	
+    initGUI();
+    guiTest(&dev, fx16G, SCREEN_WIDTH, SCREEN_HEIGHT);
     while(1){
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }

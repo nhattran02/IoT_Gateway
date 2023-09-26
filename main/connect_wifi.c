@@ -54,7 +54,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 
 
 
-void wifi_init_sta(void)
+static void wifi_init_sta(void)
 {
     s_wifi_event_group = xEventGroupCreate();
 
@@ -118,7 +118,6 @@ void wifi_init_sta(void)
             gpio_set_level(WIFI_LED_STATUS, 0);
             vTaskDelay(200/portTICK_PERIOD_MS);
         }
-
     }
     else if (bits & WIFI_FAIL_BIT)
     {
@@ -129,4 +128,13 @@ void wifi_init_sta(void)
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
     }
     vEventGroupDelete(s_wifi_event_group);
+}
+
+void wifiTask(void *pvParameters)
+{
+    ESP_LOGI(TAG, "WiFi mode: Station");
+    wifi_init_sta();
+    while(1){
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
 }
