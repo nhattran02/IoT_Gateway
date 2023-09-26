@@ -3,6 +3,7 @@
 * @file         connect_wifi.c
 * @brief        Connect wifi module
 * @since        Created on 2023-09-24
+* @author       Tran Minh Nhat - 2014008
 ********************************************************************************
 */
 
@@ -11,7 +12,7 @@
 
 
 int wifi_connect_status = 0;
-static const char *TAG = "Connect_WiFi";
+static const char *TAG = "Connect WiFi";
 int s_retry_num = 0;
 
 
@@ -87,9 +88,9 @@ void wifi_init_sta(void)
              * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
              * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
              */
-            .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
-            .sae_pwe_h2e = ESP_WIFI_SAE_MODE,
-            .sae_h2e_identifier = EXAMPLE_H2E_IDENTIFIER,
+            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+            .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
+            .sae_h2e_identifier = H2E_IDENTIFIER,
         },
     };
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
