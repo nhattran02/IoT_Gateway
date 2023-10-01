@@ -3,6 +3,7 @@
 * @file         connect_wifi.h
 * @brief        Header file for connect_wifi.c
 * @since        Created on 2023-09-24
+* @author       Tran Minh Nhat - 2014008
 ********************************************************************************
 */
 
@@ -29,36 +30,10 @@
 
 #define WIFI_SSID           "MANGDAYKTX H2-808"
 #define WIFI_PASSWORD       "44448888a"  
+#define DEFAULT_RSSI        -127
 #define MAXIMUM_RETRY       5
 #define WIFI_LED_STATUS     2
-
-#if CONFIG_ESP_WPA3_SAE_PWE_HUNT_AND_PECK
-#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HUNT_AND_PECK
-#define EXAMPLE_H2E_IDENTIFIER ""
-#elif CONFIG_ESP_WPA3_SAE_PWE_HASH_TO_ELEMENT
-#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HASH_TO_ELEMENT
-#define EXAMPLE_H2E_IDENTIFIER CONFIG_ESP_WIFI_PW_ID
-#elif CONFIG_ESP_WPA3_SAE_PWE_BOTH
-#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_BOTH
-#define EXAMPLE_H2E_IDENTIFIER CONFIG_ESP_WIFI_PW_ID
-#endif
-#if CONFIG_ESP_WIFI_AUTH_OPEN
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_OPEN
-#elif CONFIG_ESP_WIFI_AUTH_WEP
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WEP
-#elif CONFIG_ESP_WIFI_AUTH_WPA_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WPA2_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WPA_WPA2_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_WPA2_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WPA3_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA3_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WPA2_WPA3_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_WPA3_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WAPI_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WAPI_PSK
-#endif
+#define H2E_IDENTIFIER      "IoT_Gateway"
 
 
 /* The event group allows multiple bits for each event, but we only care about two events:
@@ -70,9 +45,7 @@
 
 extern int wifi_connect_status;
 
-void wifi_init_sta(void);
-
-
+void wifiTask(void *pvParameters);
 
 
 #endif
