@@ -14,7 +14,7 @@
 static const char *TAG = "SPIFFS";
 
 
-esp_err_t mountSPIFFS(char * path, char * label, int max_files) {
+esp_err_t initSPIFFS(char * path, char * label, int max_files) {
 	esp_vfs_spiffs_conf_t conf = {
 		.base_path = path,
 		.partition_label = label,
@@ -38,11 +38,18 @@ esp_err_t mountSPIFFS(char * path, char * label, int max_files) {
 	size_t total = 0, used = 0;
 	ret = esp_spiffs_info(conf.partition_label, &total, &used);
 	if (ret != ESP_OK) {
-		ESP_LOGE(TAG,"Failed to get SPIFFS partition information (%s)",esp_err_to_name(ret));
+		ESP_LOGE(TAG,"Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
 	} else {
 		ESP_LOGI(TAG,"Mount %s to %s success", path, label);
 		ESP_LOGI(TAG,"Partition size: total: %d, used: %d", total, used);
 	}
 
 	return ret;
+}
+
+
+
+esp_err_t closeSPIFFS(const char* partition_label)
+{
+    return esp_vfs_spiffs_unregister(partition_label);
 }

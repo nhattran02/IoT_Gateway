@@ -44,7 +44,7 @@ static void initHardware(void)
 	ESP_ERROR_CHECK(err);
 
 	// Initialize SPIFFS
-	err = mountSPIFFS("/spiffs", "LCD_Font", 10);
+	err = initSPIFFS("/spiffs", "LCD_Font", 10);
 	if (err != ESP_OK) return;
 }
 

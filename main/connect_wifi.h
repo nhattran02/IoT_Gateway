@@ -30,6 +30,7 @@
 
 #define WIFI_SSID           "MANGDAYKTX H2-808"
 #define WIFI_PASSWORD       "44448888a"  
+#define DEFAULT_RSSI        -127
 #define MAXIMUM_RETRY       5
 #define WIFI_LED_STATUS     2
 #define H2E_IDENTIFIER      "IoT_Gateway"
@@ -45,7 +46,6 @@
 extern int wifi_connect_status;
 
 void wifiTask(void *pvParameters);
-
 
 
 #endif
