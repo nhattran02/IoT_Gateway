@@ -27,7 +27,6 @@
 #include <lwip/netdb.h>
 
 
-
 #define WIFI_SSID           "MANGDAYKTX H2-808"
 #define WIFI_PASSWORD       "44448888a"  
 #define DEFAULT_RSSI        -127
@@ -40,7 +39,7 @@
  * - we are connected to the AP with an IP
  * - we failed to connect after the maximum amount of retries */
 #define WIFI_CONNECTED_BIT      BIT0
-#define WIFI_FAIL_BIT           BIT1
+#define ESPTOUCH_DONE_BIT       BIT1
 
 
 extern int wifi_connect_status;
