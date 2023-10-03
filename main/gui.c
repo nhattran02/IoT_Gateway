@@ -35,14 +35,10 @@
 FontxFile fx16G[2];
 FontxFile fx24G[2];
 // FontxFile fx32G[2];
-// FontxFile fx32L[2];
-// FontxFile fx16M[2];
-// FontxFile fx24M[2];
-// FontxFile fx32M[2];
 
 static TFT_t dev;
 static const char *TAG = "GUI module";
-	
+
 static void guiTextAlign(int screenWidth, int screenHeight, size_t stringLen, uint8_t fontWidth, uint8_t fontHeight, e_align_t alignment, uint16_t * xPos, uint16_t * yPos);
 
 TickType_t guiBoot(TFT_t * dev, FontxFile *fx, int width, int height)
@@ -124,10 +120,6 @@ void initGUI(void)
     InitFontx(fx16G,"/spiffs/ILGH16XB.FNT",""); // 8x16Dot  Gothic
 	InitFontx(fx24G,"/spiffs/ILGH24XB.FNT",""); // 12x24Dot Gothic
 	// InitFontx(fx32G,"/spiffs/ILGH32XB.FNT",""); // 16x32Dot Gothic
-	// InitFontx(fx32L,"/spiffs/LATIN32B.FNT",""); // 16x32Dot Latinc
-    // InitFontx(fx16M,"/spiffs/ILMH16XB.FNT",""); // 8x16Dot  Mincyo
-	// InitFontx(fx24M,"/spiffs/ILMH24XB.FNT",""); // 12x24Dot Mincyo
-	// InitFontx(fx32M,"/spiffs/ILMH32XB.FNT",""); // 16x32Dot Mincyo
 
     spi_master_init(&dev, MOSI_GPIO, SCLK_GPIO, CS_GPIO, DC_GPIO, RESET_GPIO, BACKLIGHT_GPIO, 
                     XPT_MISO_GPIO, XPT_CS_GPIO, XPT_IRQ_GPIO, XPT_SCLK_GPIO, XPT_MOSI_GPIO);
