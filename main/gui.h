@@ -18,6 +18,12 @@
 #define GRAM_X_OFFSET   0
 #define GRAM_Y_OFFSET   0
 
+#define X_START         110
+#define Y_START         0
+
+#define X_END           0
+#define Y_END           160
+
 #define MOSI_GPIO       23
 #define SCLK_GPIO       18
 #define CS_GPIO         14
@@ -42,8 +48,16 @@ typedef enum
     ALIGN_LEFT,
 }e_align_t;
 
-void initGUI(void);
+typedef enum 
+{
+    CONNECT_CONFIG = 0,
+    CLOUD_CONFIG, 
+    SENSOR_CONFIG,
+    OPTION4,
+}main_screen_option_t;
+
+
 void GUITask(void *pvParameters);
-TickType_t guiBoot(TFT_t * dev, FontxFile *fx, int width, int height);
+
 
 #endif /* GUI_H_ */
