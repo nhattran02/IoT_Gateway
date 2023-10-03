@@ -37,11 +37,80 @@ FontxFile fx24G[2];
 // FontxFile fx32G[2];
 
 static TFT_t dev;
-static const char *TAG = "GUI module";
+static int width  = SCREEN_WIDTH;
+static int height = SCREEN_HEIGHT;
+static const char *TAG = "GUI";
 
-static void guiTextAlign(int screenWidth, int screenHeight, size_t stringLen, uint8_t fontWidth, uint8_t fontHeight, e_align_t alignment, uint16_t * xPos, uint16_t * yPos);
+const char * mainScreenTextOptions[] = {"Connection Config", "Cloud Config", "Sensor Config", "Option 4"};
 
-TickType_t guiBoot(TFT_t * dev, FontxFile *fx, int width, int height)
+static void guiTextAlign(size_t stringLen, uint8_t fontWidth, uint8_t fontHeight, e_align_t alignment, uint16_t * xPos, uint16_t * yPos);
+static TickType_t mainScreenSelect(FontxFile *fx, main_screen_option_t mainScreenOption);
+static TickType_t guiBoot(FontxFile *fx);
+static void initGUI(void);
+
+
+
+void GUITask(void *pvParameters)
+{	
+    initGUI();
+    guiBoot(fx16G);
+	// mainScreenSelect(fx16G, CONNECT_CONFIG);		
+    while(1){
+		mainScreenSelect(fx16G, OPTION4);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		mainScreenSelect(fx16G, SENSOR_CONFIG);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		mainScreenSelect(fx16G, CLOUD_CONFIG);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		mainScreenSelect(fx16G, CONNECT_CONFIG);		
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+
+static void guiTextAlign(size_t stringLen, uint8_t fontWidth, uint8_t fontHeight, e_align_t alignment, uint16_t * xPos, uint16_t * yPos)
+{
+	switch(alignment)
+	{
+		case ALIGN_CENTER:
+			if(width > fontHeight){
+				*xPos = ((width - fontHeight) / 2) - 1;
+			}else{
+				*xPos = 0;
+			}
+			if(height > (stringLen * fontWidth)){
+				*yPos = (height - (stringLen * fontWidth)) / 2;
+			}else{
+				*yPos = 0;
+			}
+			break;
+		case ALIGN_RIGHT:
+			if(width > fontHeight){
+				*xPos = ((width - fontHeight) / 2) - 1;
+			}else{
+				*xPos = 0;
+			}
+			if(height > (stringLen * fontWidth)){
+				*yPos = (height - (stringLen * fontWidth));
+			}else{
+				*yPos = 0;
+			}
+			break;
+		case ALIGN_LEFT:
+			if(width > fontHeight){
+				*xPos = ((width - fontHeight) / 2) - 1;
+			}else{
+				*xPos = 0;
+			}
+			*yPos = 0;
+			break;
+		default:
+			break;
+	}
+}
+
+
+static TickType_t guiBoot(FontxFile *fx)
 {
 	TickType_t startTick, endTick, diffTick;
 	startTick = xTaskGetTickCount();
@@ -55,17 +124,17 @@ TickType_t guiBoot(TFT_t * dev, FontxFile *fx, int width, int height)
 	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
 	ESP_LOGI(TAG, "fontWidth = %d; fontHeight = %d", fontWidth, fontHeight);
 
-	lcdFillScreen(dev, WHITE_SMOKE);
+	lcdFillScreen(&dev, BG_COLOR);
 	color = BLACK;
 
 	const char * textLoading[] = {"Loading .", "Loading ..", "Loading ..."};
 	const uint8_t loadingSize = sizeof(textLoading)/sizeof(textLoading[0]);
 	for(int i = 0; i < loadingSize; i++){
 		strcpy((char *)ascii, textLoading[i]);
-		guiTextAlign(width, height, strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
-		lcdDrawString(dev, fx, xPos, yPos, ascii, color);
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, xPos, yPos, ascii, color);
 		vTaskDelay(800/portTICK_PERIOD_MS);
-		lcdFillScreen(dev, WHITE_SMOKE);
+		lcdFillScreen(&dev, BG_COLOR);
 	}
 
 	endTick = xTaskGetTickCount();
@@ -74,48 +143,7 @@ TickType_t guiBoot(TFT_t * dev, FontxFile *fx, int width, int height)
 	return diffTick;
 }
 
-static void guiTextAlign(int screenWidth, int screenHeight, size_t stringLen, uint8_t fontWidth, uint8_t fontHeight, e_align_t alignment, uint16_t * xPos, uint16_t * yPos)
-{
-	switch(alignment)
-	{
-		case ALIGN_CENTER:
-			if(screenWidth > fontHeight){
-				*xPos = ((screenWidth - fontHeight) / 2) - 1;
-			}else{
-				*xPos = 0;
-			}
-			if(screenHeight > (stringLen * fontWidth)){
-				*yPos = (screenHeight - (stringLen * fontWidth)) / 2;
-			}else{
-				*yPos = 0;
-			}
-			break;
-		case ALIGN_RIGHT:
-			if(screenWidth > fontHeight){
-				*xPos = ((screenWidth - fontHeight) / 2) - 1;
-			}else{
-				*xPos = 0;
-			}
-			if(screenHeight > (stringLen * fontWidth)){
-				*yPos = (screenHeight - (stringLen * fontWidth));
-			}else{
-				*yPos = 0;
-			}
-			break;
-		case ALIGN_LEFT:
-			if(screenWidth > fontHeight){
-				*xPos = ((screenWidth - fontHeight) / 2) - 1;
-			}else{
-				*xPos = 0;
-			}
-			*yPos = 0;
-			break;
-		default:
-			break;
-	}
-}
-
-void initGUI(void)
+static void initGUI(void)
 {
     InitFontx(fx16G,"/spiffs/ILGH16XB.FNT",""); // 8x16Dot  Gothic
 	InitFontx(fx24G,"/spiffs/ILGH24XB.FNT",""); // 12x24Dot Gothic
@@ -131,16 +159,148 @@ void initGUI(void)
     lcdBGRFilter(&dev);
 #endif 
 	lcdSetFontDirection(&dev, DIRECTION90);
-
 }
 
-void GUITask(void *pvParameters)
-{	
-	
-    initGUI();
-    guiBoot(&dev, fx16G, SCREEN_WIDTH, SCREEN_HEIGHT);
-    while(1){
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
+
+static TickType_t mainScreenSelect(FontxFile *fx, main_screen_option_t mainScreenOption)
+{
+	TickType_t startTick, endTick, diffTick;
+	startTick = xTaskGetTickCount();
+	uint16_t xPos;
+	uint16_t yPos;
+	uint8_t ascii[30] = {0};
+	uint8_t buffer[FontxGlyphBufSize];
+	uint8_t fontWidth;
+	uint8_t fontHeight;
+	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
+	// lcdFillScreen(&dev, BG_COLOR);
+    strcpy((char*)ascii, "Main Screen");
+	guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+	lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);
+	lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, BLACK);
+
+	switch (mainScreenOption)
+	{
+		case CONNECT_CONFIG:
+		{
+			strcpy((char*)ascii, mainScreenTextOptions[0]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 20, 10, X_START - 20 + fontHeight, Y_END - 10, WHITE_SMOKE);
+			lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+			for(int i = 0; i < 4; i++){
+				lcdDrawLine(&dev, X_START - 20 - (i + 1), 15, X_START - 20 - (i + 1), Y_END - 10 + 4, GRAY);
+				lcdDrawLine(&dev, X_START - 20 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 20, Y_END - 10 + (i + 1), GRAY);
+			}
+
+			strcpy((char*)ascii, mainScreenTextOptions[1]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 45 - 4, 10, X_START - 45 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, mainScreenTextOptions[2]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 70 - 4, 10, X_START - 70 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+
+
+			strcpy((char*)ascii, mainScreenTextOptions[3]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+			break;
+		}
+		case CLOUD_CONFIG:
+		{
+			strcpy((char*)ascii, mainScreenTextOptions[1]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 45, 10, X_START - 45 + fontHeight, Y_END - 10, WHITE_SMOKE);
+			lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+			for(int i = 0; i < 4; i++){
+				lcdDrawLine(&dev, X_START - 45 - (i + 1), 15, X_START - 45 - (i + 1), Y_END - 10 + 4, GRAY);
+				lcdDrawLine(&dev, X_START - 45 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 45, Y_END - 10 + (i + 1), GRAY);
+			}
+
+			strcpy((char*)ascii, mainScreenTextOptions[0]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 20 - 4, 10, X_START - 20 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, mainScreenTextOptions[2]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 70 - 4, 10, X_START - 70 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, mainScreenTextOptions[3]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+			
+			break;
+		}
+		case SENSOR_CONFIG:
+		{
+
+			strcpy((char*)ascii, mainScreenTextOptions[2]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 70, 10, X_START - 70 + fontHeight, Y_END - 10, WHITE_SMOKE);
+			lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+				for(int i = 0; i < 4; i++){
+				lcdDrawLine(&dev, X_START - 70 - (i + 1), 15, X_START - 70 - (i + 1), Y_END - 10 + 4, GRAY);
+				lcdDrawLine(&dev, X_START - 70 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 70, Y_END - 10 + (i + 1), GRAY);
+			}
+
+			strcpy((char*)ascii, mainScreenTextOptions[3]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, mainScreenTextOptions[1]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 45 - 4, 10, X_START - 45 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, mainScreenTextOptions[0]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 20 - 4, 10, X_START - 20 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+
+			break;
+		}
+		case OPTION4:
+		{
+			strcpy((char*)ascii, mainScreenTextOptions[3]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, WHITE_SMOKE);
+			lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+			for(int i = 0; i < 4; i++){
+				lcdDrawLine(&dev, X_START - 95 - (i + 1), 15, X_START - 95 - (i + 1), Y_END - 10 + 4, GRAY);
+				lcdDrawLine(&dev, X_START - 95 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 95, Y_END - 10 + (i + 1), GRAY);
+			}
+
+			strcpy((char*)ascii, mainScreenTextOptions[2]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 70 - 4, 10, X_START - 70 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, mainScreenTextOptions[0]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 20 - 4, 10, X_START - 20 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, mainScreenTextOptions[1]);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 45 - 4, 10, X_START - 45 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+			
+			break;
+		}
+		default:
+			break;
+	}
+
+	endTick = xTaskGetTickCount();
+	diffTick = endTick - startTick;
+	ESP_LOGI(__FUNCTION__, "elapsed time[ms]:%"PRIu32,diffTick*portTICK_PERIOD_MS);
+	return diffTick;	
 }
 

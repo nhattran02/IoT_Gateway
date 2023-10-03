@@ -33,7 +33,6 @@ TaskHandle_t wifiTaskHandle;
 static void initHardware(void)
 {
 	gpio_set_direction(WIFI_LED_STATUS, GPIO_MODE_OUTPUT);
-	
 	/* Initialize NVS */
 	ESP_LOGI(TAG, "Initialize NVS");
 	esp_err_t err = nvs_flash_init();
@@ -90,6 +89,6 @@ void app_main(void)
 {
 	initHardware();
 	xTaskCreate(GUITask, "GUI", 1024 * 5, NULL, 2, &GUITaskHandle);
-	xTaskCreate(wifiTask, "WiFi", 1024 * 5, NULL, 2, &wifiTaskHandle);
+	// xTaskCreate(wifiTask, "WiFi", 1024 * 5, NULL, 2, &wifiTaskHandle);
 }
 

@@ -33,7 +33,7 @@ static const int SPI_Data_Mode = 1;
 //static const int TFT_Frequency = SPI_MASTER_FREQ_20M;
 ////static const int TFT_Frequency = SPI_MASTER_FREQ_26M;
 static const int TFT_Frequency = SPI_MASTER_FREQ_40M;
-////static const int TFT_Frequency = SPI_MASTER_FREQ_80M;
+// static const int TFT_Frequency = SPI_MASTER_FREQ_80M;
 
 #if CONFIG_XPT2046_ENABLE_SAME_BUS || CONFIG_XPT2046_ENABLE_DIFF_BUS
 static const int XPT_Frequency = 1*1000*1000;
