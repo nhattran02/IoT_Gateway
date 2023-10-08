@@ -19,6 +19,7 @@
 #define AZURE		0xEFFF
 #define WHITE_SMOKE 0xF7BE
 #define BG_COLOR	0xFFFE
+#define TEXT_COLOR	BLACK
 #define SAPPHIRE    0x092D
 
 
