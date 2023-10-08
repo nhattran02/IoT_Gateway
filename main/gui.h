@@ -12,6 +12,7 @@
 
 #include "esp_vfs.h"
 #include "ili9340.h"
+#include "connect.h"
 
 #define SCREEN_WIDTH    128
 #define SCREEN_HEIGHT   160
@@ -39,22 +40,40 @@
 #define XPT_MOSI_GPIO   -1
 
 
+
 #define CONFIG_USE_RGB_COLOR    1
 
 typedef enum
 {
     ALIGN_CENTER = 0,
-    ALIGN_RIGHT,
-    ALIGN_LEFT,
+    ALIGN_RIGHT = 1,
+    ALIGN_LEFT = 2,
 }e_align_t;
 
 typedef enum 
 {
     CONNECT_CONFIG = 0,
-    CLOUD_CONFIG, 
-    SENSOR_CONFIG,
-    OPTION4,
+    CLOUD_CONFIG = 1, 
+    SENSOR_CONFIG = 2,
+    OPTION4 = 3,
 }main_screen_option_t;
+
+typedef enum
+{
+    CONNECT_WIFI = 0,
+    CONNECT_TLE = 1,
+    CONNECT_BLE = 2,
+    CONNECT_EXIT = 3,    
+}connect_screen_option_t;
+
+
+typedef enum 
+{
+    WIFI_ON_OFF = 0,
+    WIFI_SCAN = 1,
+    WIFI_ADD_NEW = 2,
+    WIFI_EXIT = 3,
+}wifi_screen_option_t;
 
 
 void GUITask(void *pvParameters);

@@ -30,7 +30,23 @@
 #include "decode_png.h"
 #include "pngle.h"
 #include "driver/gpio.h"
+#include "button.h"
 
+#define STACK_SIZE 100
+
+typedef TickType_t (*screenSelectCallback)(FontxFile *, int8_t);
+
+/* Define a data structure to represent a menu item */
+typedef struct menuItem
+{
+	const char *label;
+	screenSelectCallback dispFunc;
+	struct menuItem *subMenus;
+	int numSubMenus;
+}menuItem;
+
+menuItem* menuStack[STACK_SIZE];
+int8_t top = -1;
 
 FontxFile fx16G[2];
 FontxFile fx24G[2];
@@ -41,32 +57,88 @@ static int width  = SCREEN_WIDTH;
 static int height = SCREEN_HEIGHT;
 static const char *TAG = "GUI";
 
-const char * mainScreenTextOptions[] = {"Connection Config", "Cloud Config", "Sensor Config", "Option 4"};
+const char * mainScreenTextOptions[] = {"Connection Config", "Cloud Config",   "Sensor Config",  "Option 4"};
+const char * connScreenTextOptions[] = {"WiFi", "4G/TLE", "Bluetooth", "Exit"};
+const char * wifiScreenTextOptions[] = {"Turn off", "Scan WiFi", "Add New WiFi", "Exit"};
 
 static void guiTextAlign(size_t stringLen, uint8_t fontWidth, uint8_t fontHeight, e_align_t alignment, uint16_t * xPos, uint16_t * yPos);
-static TickType_t mainScreenSelect(FontxFile *fx, main_screen_option_t mainScreenOption);
 static TickType_t guiBoot(FontxFile *fx);
 static void initGUI(void);
+static TickType_t mainScreenSelect(FontxFile *fx, int8_t mainScreenOption);
+static TickType_t connScreenSelect(FontxFile *fx, int8_t connScreenOption);
+static TickType_t wifiScreenSelect(FontxFile *fx, int8_t wifiScreenOption);
+static void pushStack(menuItem *menuStack);
+menuItem* popStack(void);
 
+
+menuItem wifiScreenItems[] = {
+	{"Turn off", NULL, NULL, 0},
+	{"Scan WiFi", NULL, NULL, 0},
+	{"Add New WiFi", NULL, NULL, 0},
+	{"Exit", NULL, NULL, 0}
+};
+
+menuItem connScreenItems[] = {
+	{"WiFi", wifiScreenSelect, wifiScreenItems, 4},
+	{"4G/TLE", NULL, NULL, 0},
+	{"Bluetooth", NULL, NULL, 0},
+	{"Exit", NULL, NULL, 0}
+};
+
+menuItem mainScreenItems[] = {
+	{"Connection Config", connScreenSelect, connScreenItems, 4},
+	{"Cloud Config", NULL, NULL, 0},
+	{"Sensor Config", NULL, NULL, 0},
+	{"Option 4", NULL, NULL, 0}
+};
 
 
 void GUITask(void *pvParameters)
 {	
     initGUI();
     guiBoot(fx16G);
-	// mainScreenSelect(fx16G, CONNECT_CONFIG);		
+	BaseType_t err_queue;
+	gpio_num_t dataRcv;
+	// connScreenSelect(fx16G, CONNECT_TLE);
+	
     while(1){
-		mainScreenSelect(fx16G, OPTION4);
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		mainScreenSelect(fx16G, SENSOR_CONFIG);
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		mainScreenSelect(fx16G, CLOUD_CONFIG);
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		mainScreenSelect(fx16G, CONNECT_CONFIG);		
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// connScreenSelect(fx16G, CONNECT_WIFI);
+		// vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// connScreenSelect(fx16G, CONNECT_TLE);
+		// vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// connScreenSelect(fx16G, CONNECT_BLE);
+		// vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// connScreenSelect(fx16G, CONNECT_EXIT);		
+        // vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// connectStatus.isWifiOn = true;
+		// wifiScreenSelect(fx16G, WIFI_ON_OFF);
+		// vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// wifiScreenSelect(fx16G, WIFI_SCAN);
+		// vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// wifiScreenSelect(fx16G, WIFI_ADD_NEW);
+		// vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// wifiScreenSelect(fx16G, WIFI_EXIT);		
+        // vTaskDelay(1000 / portTICK_PERIOD_MS);		
+		err_queue = xQueueReceive (buttonMessageQueue, (void* const )&dataRcv, (TickType_t) portMAX_DELAY);
+		if(err_queue == pdTRUE){
+			switch (dataRcv)
+			{
+			case BUTTON_UP:
+				ESP_LOGI(TAG, "Button Up");
+				break;
+			case BUTTON_DOWN:
+				ESP_LOGI(TAG, "Button Down");
+				break;
+			case BUTTON_ENTER:
+				ESP_LOGI(TAG, "Button Enter");
+				break;
+			default:
+				break;
+			}
+		}
+		// vTaskDelay(100/portTICK_PERIOD_MS);
     }
 }
-
 
 static void guiTextAlign(size_t stringLen, uint8_t fontWidth, uint8_t fontHeight, e_align_t alignment, uint16_t * xPos, uint16_t * yPos)
 {
@@ -139,7 +211,7 @@ static TickType_t guiBoot(FontxFile *fx)
 
 	endTick = xTaskGetTickCount();
 	diffTick = endTick - startTick;
-	ESP_LOGI(__FUNCTION__, "elapsed time[ms]:%"PRIu32,diffTick*portTICK_PERIOD_MS);
+	// ESP_LOGI(__FUNCTION__, "elapsed time[ms]:%"PRIu32,diffTick*portTICK_PERIOD_MS);
 	return diffTick;
 }
 
@@ -162,8 +234,9 @@ static void initGUI(void)
 }
 
 
-static TickType_t mainScreenSelect(FontxFile *fx, main_screen_option_t mainScreenOption)
+static TickType_t wifiScreenSelect(FontxFile *fx, int8_t wifiScreenOption)
 {
+	wifi_screen_option_t _wifiScreenOption = (wifi_screen_option_t)wifiScreenOption;
 	TickType_t startTick, endTick, diffTick;
 	startTick = xTaskGetTickCount();
 	uint16_t xPos;
@@ -173,13 +246,349 @@ static TickType_t mainScreenSelect(FontxFile *fx, main_screen_option_t mainScree
 	uint8_t fontWidth;
 	uint8_t fontHeight;
 	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
-	// lcdFillScreen(&dev, BG_COLOR);
+
+
+	if(!(connectStatus.isWifiOn)){
+		lcdFillScreen(&dev, BG_COLOR);
+
+		if(connectStatus.isWifiConnected){
+			strcpy((char*)ascii, "Connected");
+		}else{
+			strcpy((char*)ascii, "Disconnected");
+		}
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);
+		lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, BLACK);
+
+		strcpy((char*)ascii, "Turn on");
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawFillRect(&dev, X_START - 20, 10, X_START - 20 + fontHeight, Y_END - 10, WHITE_SMOKE);
+		lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+		for(int i = 0; i < 4; i++){
+			lcdDrawLine(&dev, X_START - 20 - (i + 1), 15, X_START - 20 - (i + 1), Y_END - 10 + 4, GRAY);
+			lcdDrawLine(&dev, X_START - 20 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 20, Y_END - 10 + (i + 1), GRAY);
+		}		
+	}else{
+		if(connectStatus.isWifiConnected){
+			strcpy((char*)ascii, "Connected");
+		}else{
+			strcpy((char*)ascii, "Disconnected");
+		}
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);
+		lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, BLACK);
+
+		switch (_wifiScreenOption)
+		{
+			case WIFI_ON_OFF:
+			{
+				strcpy((char*)ascii, wifiScreenItems[WIFI_ON_OFF].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 20, 10, X_START - 20 + fontHeight, Y_END - 10, WHITE_SMOKE);
+				lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+				for(int i = 0; i < 4; i++){
+					lcdDrawLine(&dev, X_START - 20 - (i + 1), 15, X_START - 20 - (i + 1), Y_END - 10 + 4, GRAY);
+					lcdDrawLine(&dev, X_START - 20 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 20, Y_END - 10 + (i + 1), GRAY);
+				}
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_SCAN].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 45 - 4, 10, X_START - 45 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_ADD_NEW].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 70 - 4, 10, X_START - 70 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_EXIT].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+				break;
+			}
+			case WIFI_SCAN:
+			{
+				strcpy((char*)ascii, wifiScreenItems[WIFI_SCAN].label);		
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 45, 10, X_START - 45 + fontHeight, Y_END - 10, WHITE_SMOKE);
+				lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+				for(int i = 0; i < 4; i++){
+					lcdDrawLine(&dev, X_START - 45 - (i + 1), 15, X_START - 45 - (i + 1), Y_END - 10 + 4, GRAY);
+					lcdDrawLine(&dev, X_START - 45 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 45, Y_END - 10 + (i + 1), GRAY);
+				}
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_ON_OFF].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 20 - 4, 10, X_START - 20 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_ADD_NEW].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 70 - 4, 10, X_START - 70 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_EXIT].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+				
+				break;
+			}
+			case WIFI_ADD_NEW:
+			{
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_ADD_NEW].label);		
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 70, 10, X_START - 70 + fontHeight, Y_END - 10, WHITE_SMOKE);
+				lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+					for(int i = 0; i < 4; i++){
+					lcdDrawLine(&dev, X_START - 70 - (i + 1), 15, X_START - 70 - (i + 1), Y_END - 10 + 4, GRAY);
+					lcdDrawLine(&dev, X_START - 70 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 70, Y_END - 10 + (i + 1), GRAY);
+				}
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_EXIT].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_SCAN].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 45 - 4, 10, X_START - 45 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_ON_OFF].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 20 - 4, 10, X_START - 20 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+
+				break;
+			}
+			case WIFI_EXIT:
+			{
+				strcpy((char*)ascii, wifiScreenItems[WIFI_EXIT].label);		
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, WHITE_SMOKE);
+				lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+				for(int i = 0; i < 4; i++){
+					lcdDrawLine(&dev, X_START - 95 - (i + 1), 15, X_START - 95 - (i + 1), Y_END - 10 + 4, GRAY);
+					lcdDrawLine(&dev, X_START - 95 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 95, Y_END - 10 + (i + 1), GRAY);
+				}
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_ADD_NEW].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 70 - 4, 10, X_START - 70 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_ON_OFF].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 20 - 4, 10, X_START - 20 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+
+				strcpy((char*)ascii, wifiScreenItems[WIFI_SCAN].label);
+				guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+				lcdDrawFillRect(&dev, X_START - 45 - 4, 10, X_START - 45 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+				lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+				
+				break;
+			}
+			default:
+				break;
+		}
+	}
+	
+
+	endTick = xTaskGetTickCount();
+	diffTick = endTick - startTick;
+	// ESP_LOGI(__FUNCTION__, "elapsed time[ms]:%"PRIu32,diffTick*portTICK_PERIOD_MS);
+	return diffTick;	
+}
+
+static TickType_t connScreenSelect(FontxFile *fx, int8_t connScreenOption)
+{
+	connect_screen_option_t _connScreenOption = (connect_screen_option_t)connScreenOption;
+
+	TickType_t startTick, endTick, diffTick;
+	startTick = xTaskGetTickCount();
+	uint16_t xPos;
+	uint16_t yPos;
+	uint8_t ascii[30] = {0};
+	uint8_t buffer[FontxGlyphBufSize];
+	uint8_t fontWidth;
+	uint8_t fontHeight;
+	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
+
+	strcpy((char*)ascii, "Connect Screen");  
+	guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+	lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);
+	lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, BLACK);
+	
+	switch (_connScreenOption)
+	{
+		case CONNECT_WIFI:
+		{
+			strcpy((char*)ascii, connScreenItems[CONNECT_WIFI].label);
+			if(connectStatus.isWifiConnected){
+				strcat((char*)ascii, " <ON>");
+			}else{
+				strcat((char*)ascii, " <OFF>");
+			}
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 20, 10, X_START - 20 + fontHeight, Y_END - 10, WHITE_SMOKE);
+			lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+			for(int i = 0; i < 4; i++){
+				lcdDrawLine(&dev, X_START - 20 - (i + 1), 15, X_START - 20 - (i + 1), Y_END - 10 + 4, GRAY);
+				lcdDrawLine(&dev, X_START - 20 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 20, Y_END - 10 + (i + 1), GRAY);
+			}
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_TLE].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 45 - 4, 10, X_START - 45 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_BLE].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 70 - 4, 10, X_START - 70 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_EXIT].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+			break;
+		}
+		case CONNECT_TLE:
+		{
+			strcpy((char*)ascii, connScreenItems[CONNECT_TLE].label);
+			if(connectStatus.isLTEConnected){
+				strcat((char*)ascii, " <ON>");
+			}else{
+				strcat((char*)ascii, " <OFF>");
+			}			
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 45, 10, X_START - 45 + fontHeight, Y_END - 10, WHITE_SMOKE);
+			lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+			for(int i = 0; i < 4; i++){
+				lcdDrawLine(&dev, X_START - 45 - (i + 1), 15, X_START - 45 - (i + 1), Y_END - 10 + 4, GRAY);
+				lcdDrawLine(&dev, X_START - 45 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 45, Y_END - 10 + (i + 1), GRAY);
+			}
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_WIFI].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 20 - 4, 10, X_START - 20 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_BLE].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 70 - 4, 10, X_START - 70 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_EXIT].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+			
+			break;
+		}
+		case CONNECT_BLE:
+		{
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_BLE].label);
+			if(connectStatus.isBLEConnected){
+				strcat((char*)ascii, " <ON>");
+			}else{
+				strcat((char*)ascii, " <OFF>");
+			}			
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 70, 10, X_START - 70 + fontHeight, Y_END - 10, WHITE_SMOKE);
+			lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+				for(int i = 0; i < 4; i++){
+				lcdDrawLine(&dev, X_START - 70 - (i + 1), 15, X_START - 70 - (i + 1), Y_END - 10 + 4, GRAY);
+				lcdDrawLine(&dev, X_START - 70 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 70, Y_END - 10 + (i + 1), GRAY);
+			}
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_EXIT].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_TLE].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 45 - 4, 10, X_START - 45 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_WIFI].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 20 - 4, 10, X_START - 20 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+
+			break;
+		}
+		case CONNECT_EXIT:
+		{
+			strcpy((char*)ascii, connScreenItems[CONNECT_EXIT].label);		
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 95 - 4, 10, X_START - 95 + fontHeight, Y_END - 10 + 4, WHITE_SMOKE);
+			lcdDrawString(&dev, fx, X_START - 95, yPos, ascii, BLACK);
+			for(int i = 0; i < 4; i++){
+				lcdDrawLine(&dev, X_START - 95 - (i + 1), 15, X_START - 95 - (i + 1), Y_END - 10 + 4, GRAY);
+				lcdDrawLine(&dev, X_START - 95 + fontHeight - 4, Y_END - 10 + (i + 1), X_START - 95, Y_END - 10 + (i + 1), GRAY);
+			}
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_BLE].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 70 - 4, 10, X_START - 70 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 70, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_WIFI].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 20 - 4, 10, X_START - 20 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 20, yPos, ascii, BLACK);
+
+			strcpy((char*)ascii, connScreenItems[CONNECT_TLE].label);
+			guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+			lcdDrawFillRect(&dev, X_START - 45 - 4, 10, X_START - 45 + fontHeight, Y_END - 10 + 4, BG_COLOR);
+			lcdDrawString(&dev, fx, X_START - 45, yPos, ascii, BLACK);
+			
+			break;
+		}
+		default:
+			break;
+	}
+
+	endTick = xTaskGetTickCount();
+	diffTick = endTick - startTick;
+	// ESP_LOGI(__FUNCTION__, "elapsed time[ms]:%"PRIu32,diffTick*portTICK_PERIOD_MS);
+	return diffTick;
+}
+
+
+// static TickType_t wifiScreenSelect()
+// {
+
+// }
+
+static TickType_t mainScreenSelect(FontxFile *fx, int8_t mainScreenOption)
+{
+	main_screen_option_t _mainScreenOption = (main_screen_option_t)mainScreenOption;
+	TickType_t startTick, endTick, diffTick;
+	startTick = xTaskGetTickCount();
+	uint16_t xPos;
+	uint16_t yPos;
+	uint8_t ascii[30] = {0};
+	uint8_t buffer[FontxGlyphBufSize];
+	uint8_t fontWidth;
+	uint8_t fontHeight;
+	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
+	
     strcpy((char*)ascii, "Main Screen");
 	guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
 	lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);
 	lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, BLACK);
 
-	switch (mainScreenOption)
+	switch (_mainScreenOption)
 	{
 		case CONNECT_CONFIG:
 		{
@@ -300,7 +709,23 @@ static TickType_t mainScreenSelect(FontxFile *fx, main_screen_option_t mainScree
 
 	endTick = xTaskGetTickCount();
 	diffTick = endTick - startTick;
-	ESP_LOGI(__FUNCTION__, "elapsed time[ms]:%"PRIu32,diffTick*portTICK_PERIOD_MS);
+	// ESP_LOGI(__FUNCTION__, "elapsed time[ms]:%"PRIu32,diffTick*portTICK_PERIOD_MS);
 	return diffTick;	
 }
 
+static void pushStack(menuItem *menu_item)
+{
+	if(top < STACK_SIZE - 1){
+		menuStack[++top] = menu_item;
+	}else{
+		ESP_LOGE(TAG, "Menu stack is overflow");
+	}
+}
+
+menuItem* popStack(){
+	if(top >= 0){
+		return menuStack[top --];
+	}else{
+		return NULL;
+	}
+}
