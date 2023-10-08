@@ -22,17 +22,29 @@
 #include "driver/gpio.h"
 #include "gui.h"
 #include "connect_wifi.h"
-
+#include "button.h"
 
 static const char *TAG = "IoT Gateway";
 
 
 TaskHandle_t GUITaskHandle;
 TaskHandle_t wifiTaskHandle;
+TaskHandle_t ButtonTaskHandle;
+
+static void initHardware(void);
+
+void app_main(void)
+{
+	initHardware();
+	xTaskCreate(GUITask, "GUI", 1024 * 5, NULL, 2, &GUITaskHandle);
+	// xTaskCreate(wifiTask, "WiFi", 1024 * 5, NULL, 2, &wifiTaskHandle);
+	xTaskCreate(buttonTask, "Button", 1024 * 5, NULL, 2, &ButtonTaskHandle);
+}
 
 static void initHardware(void)
 {
 	gpio_set_direction(WIFI_LED_STATUS, GPIO_MODE_OUTPUT);
+    initButton();
 	/* Initialize NVS */
 	ESP_LOGI(TAG, "Initialize NVS");
 	esp_err_t err = nvs_flash_init();
@@ -84,11 +96,3 @@ static void initHardware(void)
     }
 
 } 
-
-void app_main(void)
-{
-	initHardware();
-	xTaskCreate(GUITask, "GUI", 1024 * 5, NULL, 2, &GUITaskHandle);
-	// xTaskCreate(wifiTask, "WiFi", 1024 * 5, NULL, 2, &wifiTaskHandle);
-}
-
