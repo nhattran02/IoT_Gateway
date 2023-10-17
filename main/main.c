@@ -37,7 +37,7 @@ void app_main(void)
 {
 	initHardware();
 	xTaskCreate(GUITask, "GUI", 1024 * 5, NULL, 2, &GUITaskHandle);
-	// xTaskCreate(wifiTask, "WiFi", 1024 * 5, NULL, 2, &wifiTaskHandle);
+	xTaskCreate(wifiTask, "WiFi", 1024 * 5, NULL, 2, &wifiTaskHandle);
 	xTaskCreate(buttonTask, "Button", 1024 * 5, NULL, 2, &ButtonTaskHandle);
 }
 
