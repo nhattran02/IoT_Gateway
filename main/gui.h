@@ -39,7 +39,7 @@
 #define XPT_SCLK_GPIO   -1
 #define XPT_MOSI_GPIO   -1
 
-#define STACK_SIZE 1024
+#define STACK_SIZE      256
 
 
 #define CONFIG_USE_RGB_COLOR    1

@@ -40,9 +40,13 @@
  * - we failed to connect after the maximum amount of retries */
 #define WIFI_CONNECTED_BIT      BIT0
 #define ESPTOUCH_DONE_BIT       BIT1
-
+#define WIFI_TURN_ON_BIT        BIT2
+#define WIFI_SCAN_BIT           BIT3
+#define WIFI_NEW_SSID_BIT       BIT4
 
 extern int wifi_connect_status;
+extern EventGroupHandle_t s_wifi_event_group;
+
 
 void wifiTask(void *pvParameters);
 

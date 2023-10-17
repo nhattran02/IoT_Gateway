@@ -31,7 +31,7 @@ int s_retry_num = 0;
 
 
 /* FreeRTOS event group to signal when we are connected*/
-static EventGroupHandle_t s_wifi_event_group;
+EventGroupHandle_t s_wifi_event_group;
 
 static void smartConfigTask(void * pvParameters)
 {
@@ -167,8 +167,13 @@ static void wifiConnect(void)
 void wifiTask(void *pvParameters)
 {
     ESP_LOGI(TAG, "WiFi mode: Smart Config");
-    wifiConnect();
+    // wifiConnect();
+    s_wifi_event_group = xEventGroupCreate();
     while(1){
+        EventBits_t uxBits = xEventGroupWaitBits(s_wifi_event_group, WIFI_TURN_ON_BIT, true, false, portMAX_DELAY);
+        if(uxBits & WIFI_TURN_ON_BIT) {
+            ESP_LOGI(TAG, "WIFI TURN ON");
+        }
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
