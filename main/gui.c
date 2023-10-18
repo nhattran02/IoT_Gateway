@@ -64,10 +64,10 @@ static void initGUI(void);
 static TickType_t dispMainScreen(FontxFile *fx, int8_t mainScreenOption, struct menuScreen curScreen);
 static TickType_t dispConnScreen(FontxFile *fx, int8_t connScreenOption, struct menuScreen curScreen);
 static TickType_t dispWifiScreen(FontxFile *fx, int8_t wifiScreenOption, struct menuScreen curScreen);
-static TickType_t dispScanWifiScreen(FontxFile *fx, int8_t scanWifiScreenOption, struct menuScreen curScreen);
 static void handleOnOffWiFiFunc(void);
 static void pushStack(menuScreen screen);
 static int8_t popStack(menuScreen *screen);
+
 
 menuScreen wifiScreenSubMenus[] = {
 	{
@@ -189,7 +189,7 @@ void GUITask(void *pvParameters)
 		if(curScreen.subMenus != NULL && curScreen.dispFunc != NULL){
 			curScreen.dispFunc(fx16G, curScreen.curSubMenusDisp, curScreen);
 		}
-		err_queue = xQueueReceive (buttonMessageQueue, (void* const )&btnSignal, (TickType_t) portMAX_DELAY);
+		err_queue = xQueueReceive(buttonMessageQueue, (void* const )&btnSignal, (TickType_t) portMAX_DELAY);
 		if(err_queue == pdTRUE){
 			switch (btnSignal)
 			{
@@ -216,7 +216,7 @@ void GUITask(void *pvParameters)
 					}else if((curScreen.subMenus[curScreen.curSubMenusDisp].subMenus == NULL) && (strcmp(curScreen.subMenus[curScreen.curSubMenusDisp].label, "Back") != 0)){
 						if(curScreen.subMenus[curScreen.curSubMenusDisp].handleFunc != NULL){
 							curScreen.subMenus[curScreen.curSubMenusDisp].handleFunc();
-						}						
+						}
 					}else if(strcmp(curScreen.subMenus[curScreen.curSubMenusDisp].label, "Back") == 0){
 						if(popStack(&curScreen) != 0){
 							ESP_LOGE(TAG, "Failed to pop stack");
@@ -344,11 +344,16 @@ static TickType_t dispWifiScreen(FontxFile *fx, int8_t wifiScreenOption, menuScr
 
 	if(connectStatus.isWifiConnected){
 		strcpy((char*)ascii, "Connected");
+		lcdDrawFillRect(&dev, X_START + 1, 0, X_START + fontHeight + 1, Y_END, GREEN);
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);		
 	}else{
 		strcpy((char*)ascii, "Disconnected");
+		lcdDrawFillRect(&dev, X_START + 1 , 0, X_START + fontHeight + 1, Y_END, RED);
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, WHITE);
 	}
-	guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
-	lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);
+
 	lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, BLACK);	
 
 	switch (_wifiScreenOption)
@@ -481,26 +486,6 @@ static TickType_t dispWifiScreen(FontxFile *fx, int8_t wifiScreenOption, menuScr
 	return diffTick;	
 }
 
-static TickType_t dispScanWifiScreen(FontxFile *fx, int8_t scanWifiScreenOption, struct menuScreen curScreen)
-{
-	TickType_t startTick, endTick, diffTick;
-	startTick = xTaskGetTickCount();
-	uint16_t xPos;
-	uint16_t yPos;
-	uint8_t ascii[30] = {0};
-	uint8_t buffer[FontxGlyphBufSize];
-	uint8_t fontWidth;
-	uint8_t fontHeight;
-	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
-
-
-
-	endTick = xTaskGetTickCount();
-	diffTick = endTick - startTick;
-	// ESP_LOGI(__FUNCTION__, "elapsed time[ms]:%"PRIu32,diffTick*portTICK_PERIOD_MS);
-	return diffTick;	
-}
-
 
 
 
@@ -519,11 +504,25 @@ static TickType_t dispConnScreen(FontxFile *fx, int8_t connScreenOption, menuScr
 	uint8_t fontHeight;
 	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
 
-	strcpy((char*)ascii, "Connect Screen");  
-	guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
-	lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);
-	lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, TEXT_COLOR);
-	
+	// strcpy((char*)ascii, "Connect Screen");  
+	// guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+	// lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);
+	// lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, TEXT_COLOR);
+
+	if(connectStatus.isWifiConnected){
+		strcpy((char*)ascii, "Connected");
+		lcdDrawFillRect(&dev, X_START + 1, 0, X_START + fontHeight + 1, Y_END, GREEN);
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);		
+	}else{
+		strcpy((char*)ascii, "Disconnected");
+		lcdDrawFillRect(&dev, X_START + 1 , 0, X_START + fontHeight + 1, Y_END, RED);
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, WHITE);
+	}
+
+	lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, BLACK);	
+
 	switch (_connScreenOption)
 	{
 		case CONNECT_WIFI:
@@ -679,10 +678,25 @@ static TickType_t dispMainScreen(FontxFile *fx, int8_t mainScreenOption, menuScr
 	uint8_t fontHeight;
 	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
 	
-    strcpy((char*)ascii, mainScreen.label);
-	guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
-	lcdDrawString(&dev, fx, X_START, yPos, ascii, TEXT_COLOR);
-	lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, TEXT_COLOR);
+    // strcpy((char*)ascii, mainScreen.label);
+	// guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+	// lcdDrawString(&dev, fx, X_START, yPos, ascii, TEXT_COLOR);
+	// lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, TEXT_COLOR);
+
+	if(connectStatus.isWifiConnected){
+		strcpy((char*)ascii, "Connected");
+		lcdDrawFillRect(&dev, X_START + 1, 0, X_START + fontHeight + 1, Y_END, GREEN);
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);		
+	}else{
+		strcpy((char*)ascii, "Disconnected");
+		lcdDrawFillRect(&dev, X_START + 1 , 0, X_START + fontHeight + 1, Y_END, RED);
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, WHITE);
+	}
+
+	lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, BLACK);	
+
 
 	switch (_mainScreenOption)
 	{
@@ -838,4 +852,36 @@ static void handleOnOffWiFiFunc(void)
         xEventGroupClearBits(s_wifi_event_group, WIFI_TURN_ON_BIT);
 		connectStatus.isWifiOn = false;
 	}
+}
+
+TickType_t dispUpdateWifiStatus(FontxFile *fx)
+{
+	TickType_t startTick, endTick, diffTick;
+	startTick = xTaskGetTickCount();
+	uint16_t xPos;
+	uint16_t yPos;
+	uint8_t ascii[30] = {0};
+	uint8_t buffer[FontxGlyphBufSize];
+	uint8_t fontWidth;
+	uint8_t fontHeight;
+	GetFontx(fx, 0, buffer, &fontWidth, &fontHeight);
+
+	if(connectStatus.isWifiConnected){
+		strcpy((char*)ascii, "Connected");
+		lcdDrawFillRect(&dev, X_START + 1, 0, X_START + fontHeight + 1, Y_END, GREEN);
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, BLACK);		
+	}else{
+		strcpy((char*)ascii, "Disconnected");
+		lcdDrawFillRect(&dev, X_START + 1 , 0, X_START + fontHeight + 1, Y_END, RED);
+		guiTextAlign(strlen((char *)ascii), fontWidth, fontHeight, ALIGN_CENTER, &xPos, &yPos);
+		lcdDrawString(&dev, fx, X_START, yPos, ascii, WHITE);
+	}
+
+	lcdDrawLine(&dev, X_START, Y_START, X_START, Y_END, BLACK);		
+
+	endTick = xTaskGetTickCount();
+	diffTick = endTick - startTick;
+	// ESP_LOGI(__FUNCTION__, "elapsed time[ms]:%"PRIu32,diffTick*portTICK_PERIOD_MS);
+	return diffTick;	
 }

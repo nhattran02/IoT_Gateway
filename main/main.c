@@ -31,17 +31,17 @@ TaskHandle_t GUITaskHandle;
 TaskHandle_t wifiTaskHandle;
 TaskHandle_t ButtonTaskHandle;
 
-static void initHardware(void);
+static void init(void);
 
 void app_main(void)
 {
-	initHardware();
+	init();
 	xTaskCreate(GUITask, "GUI", 1024 * 5, NULL, 2, &GUITaskHandle);
 	xTaskCreate(wifiTask, "WiFi", 1024 * 5, NULL, 2, &wifiTaskHandle);
 	xTaskCreate(buttonTask, "Button", 1024 * 5, NULL, 2, &ButtonTaskHandle);
 }
 
-static void initHardware(void)
+static void init(void)
 {
 	gpio_set_direction(WIFI_LED_STATUS, GPIO_MODE_OUTPUT);
     initButton();
@@ -94,4 +94,6 @@ static void initHardware(void)
             ESP_LOGI(TAG, "SPIFFS_check() successful");
         }
     }
+
+    s_wifi_event_group = xEventGroupCreate();
 } 

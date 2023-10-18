@@ -179,11 +179,11 @@ void wifi_manager_start(){
 	esp_log_level_set("wifi", ESP_LOG_NONE);
 
 	/* initialize flash memory */
-	nvs_flash_init();
+	// nvs_flash_init();	//I've already init it in init() function in main.c
 	ESP_ERROR_CHECK(nvs_sync_create()); /* semaphore for thread synchronization on NVS memory */
 
 	/* memory allocation */
-	wifi_manager_queue = xQueueCreate( 3, sizeof( queue_message) );
+	wifi_manager_queue = xQueueCreate(3, sizeof(queue_message));
 	wifi_manager_json_mutex = xSemaphoreCreateMutex();
 	accessp_records = (wifi_ap_record_t*)malloc(sizeof(wifi_ap_record_t) * MAX_AP_NUM);
 	accessp_json = (char*)malloc(MAX_AP_NUM * JSON_ONE_APP_SIZE + 4); /* 4 bytes for json encapsulation of "[\n" and "]\0" */
@@ -194,7 +194,7 @@ void wifi_manager_start(){
 	memset(wifi_manager_config_sta, 0x00, sizeof(wifi_config_t));
 	memset(&wifi_settings.sta_static_ip_config, 0x00, sizeof(esp_netif_ip_info_t));
 	cb_ptr_arr = malloc(sizeof(void (*)(void*)) * WM_MESSAGE_CODE_COUNT);
-	for(int i=0; i<WM_MESSAGE_CODE_COUNT; i++){
+	for(int i = 0; i < WM_MESSAGE_CODE_COUNT; i++){
 		cb_ptr_arr[i] = NULL;
 	}
 	wifi_manager_sta_ip_mutex = xSemaphoreCreateMutex();
@@ -586,7 +586,7 @@ static void wifi_manager_event_handler(void* arg, esp_event_base_t event_base, i
 		 * arise. Upon receiving this event, the event task will initialize the LwIP network interface (netif).
 		 * Generally, the application event callback needs to call esp_wifi_connect() to connect to the configured AP. */
 		case WIFI_EVENT_STA_START:
-			ESP_LOGI(TAG, "");
+			ESP_LOGI(TAG, "WIFI_EVENT_STA_START");
 			break;
 
 		/* If esp_wifi_stop() returns ESP_OK and the current Wi-Fi mode is Station or AP+Station, then this event will arise.
@@ -972,7 +972,7 @@ void wifi_manager( void * pvParameters ){
 		.channel = 0,
 		.show_hidden = true
 	};
-
+	
 	/* enqueue first event: load previous config */
 	wifi_manager_send_message(WM_ORDER_LOAD_AND_RESTORE_STA, NULL);
 

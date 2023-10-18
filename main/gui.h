@@ -75,8 +75,12 @@ typedef enum
     WIFI_EXIT = 2,
 }wifi_screen_option_t;
 
+extern FontxFile fx16G[2];
+extern FontxFile fx24G[2];
+// extern FontxFile fx32G[2];
+
 
 void GUITask(void *pvParameters);
-
+TickType_t dispUpdateWifiStatus(FontxFile *fx);
 
 #endif /* GUI_H_ */
