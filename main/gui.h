@@ -71,9 +71,8 @@ typedef enum
 typedef enum 
 {
     WIFI_ON_OFF = 0,
-    WIFI_SCAN = 1,
-    WIFI_ADD_NEW = 2,
-    WIFI_EXIT = 3,
+    WIFI_ADD_NEW = 1,
+    WIFI_EXIT = 2,
 }wifi_screen_option_t;
 
 

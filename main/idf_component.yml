@@ -1,0 +1,6 @@
+dependencies:
+  mdns: ">=1.0.3"
+  # esp32-wifi-manager:
+  #   # Using the fork since it has idf 5 support
+  #   version: huardti/idf-5.X-support
+  #   git: https://github.com/huardti/esp32-wifi-manager.git

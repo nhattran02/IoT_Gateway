@@ -33,7 +33,7 @@
 #define MAXIMUM_RETRY       5
 #define WIFI_LED_STATUS     2
 #define H2E_IDENTIFIER      "IoT_Gateway"
-
+#define NUM_OF_WIFI_SUPPORT 10
 
 /* The event group allows multiple bits for each event, but we only care about two events:
  * - we are connected to the AP with an IP
