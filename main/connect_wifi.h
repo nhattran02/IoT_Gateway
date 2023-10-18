@@ -25,7 +25,7 @@
 #include <lwip/sys.h>
 #include <lwip/api.h>
 #include <lwip/netdb.h>
-
+#include "connect.h"
 
 #define WIFI_SSID           "MANGDAYKTX H2-808"
 #define WIFI_PASSWORD       "44448888a"  

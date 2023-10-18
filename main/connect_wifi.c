@@ -25,6 +25,7 @@
 #include "esp_netif.h"
 #include "esp_smartconfig.h"
 #include "wifi_manager.h"
+#include "gui.h"
 
 int wifi_connect_status = 0;
 static const char *TAG = "Connect WiFi";
@@ -147,7 +148,6 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 
 static void wifiConnect(void)
 {
-    s_wifi_event_group = xEventGroupCreate();
 
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -167,12 +167,11 @@ static void wifiConnect(void)
 
 void cb_connection_ok(void *pvParameter){
 	ip_event_got_ip_t* param = (ip_event_got_ip_t*)pvParameter;
-
-	/* transform IP to human readable string */
 	char str_ip[16];
 	esp_ip4addr_ntoa(&param->ip_info.ip, str_ip, IP4ADDR_STRLEN_MAX);
-
-	ESP_LOGI(TAG, "I have a connection and my IP is %s!", str_ip);
+	ESP_LOGI(TAG, "The IoT Gateway Board has a connection and its IP is %s!", str_ip);
+    connectStatus.isWifiConnected = true;
+    dispUpdateWifiStatus(fx16G);
 }
 
 
@@ -184,24 +183,15 @@ void monitoring_task(void *pvParameter)
 	}
 }
 
-
 void wifiTask(void *pvParameters)
 {
-    ESP_LOGI(TAG, "WiFi mode: Smart Config");
-    // wifiConnect();
-
-    /* Test captive portal */
-    wifi_manager_start();
-    wifi_manager_set_callback(WM_EVENT_STA_GOT_IP, &cb_connection_ok);
-
-    /* -------------------- */
-    // s_wifi_event_group = xEventGroupCreate();
     while(1){
-        // EventBits_t uxBits = xEventGroupWaitBits(s_wifi_event_group, WIFI_TURN_ON_BIT, true, false, portMAX_DELAY);
-        // if(uxBits & WIFI_TURN_ON_BIT) {
-        //     ESP_LOGI(TAG, "WIFI TURN ON");
-        // }
-        // ESP_LOGI(TAG, "free heap: %ld",esp_get_free_heap_size());
-		vTaskDelay(pdMS_TO_TICKS(10000));
+        EventBits_t uxBits = xEventGroupWaitBits(s_wifi_event_group, WIFI_TURN_ON_BIT, true, false, portMAX_DELAY);
+        if(uxBits & WIFI_TURN_ON_BIT) {
+            ESP_LOGI(TAG, "Start Wi-Fi");
+            wifi_manager_start();
+            wifi_manager_set_callback(WM_EVENT_STA_GOT_IP, &cb_connection_ok);            
+        }
+		vTaskDelay(pdMS_TO_TICKS(10));
     }
 }

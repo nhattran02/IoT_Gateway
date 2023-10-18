@@ -230,7 +230,7 @@ static esp_err_t http_server_get_handler(httpd_req_t *req){
 
 	/* determine if Host is from the STA IP address */
 	wifi_manager_lock_sta_ip_string(portMAX_DELAY);
-	bool access_from_sta_ip = host != NULL?strstr(host, wifi_manager_get_sta_ip_string()):false;
+	bool access_from_sta_ip = (host != NULL) ? (strstr(host, wifi_manager_get_sta_ip_string())) : false;
 	wifi_manager_unlock_sta_ip_string();
 
 
@@ -440,13 +440,13 @@ void http_app_start(bool lru_purge_enable){
 			const char page_status[] = "status.json";
 
 			/* root url, eg "/"   */
-			const size_t http_root_url_sz = sizeof(char) * (root_len+1);
+			const size_t http_root_url_sz = sizeof(char) * (root_len + 1);
 			http_root_url = malloc(http_root_url_sz);
 			memset(http_root_url, 0x00, http_root_url_sz);
 			strcpy(http_root_url, WEBAPP_LOCATION);
 
 			/* redirect url */
-			size_t redirect_sz = 22 + root_len + 1; /* strlen(http://255.255.255.255) + strlen("/") + 1 for \0 */
+			size_t redirect_sz = strlen("http://255.255.255.255") + root_len + 1; /* strlen(http://255.255.255.255) + strlen("/") + 1 for \0 */
 			http_redirect_url = malloc(sizeof(char) * redirect_sz);
 			*http_redirect_url = '\0';
 
