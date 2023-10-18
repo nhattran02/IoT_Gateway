@@ -94,5 +94,4 @@ static void initHardware(void)
             ESP_LOGI(TAG, "SPIFFS_check() successful");
         }
     }
-
 } 

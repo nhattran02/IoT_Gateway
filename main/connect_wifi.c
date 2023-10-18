@@ -24,6 +24,7 @@
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "esp_smartconfig.h"
+#include "wifi_manager.h"
 
 int wifi_connect_status = 0;
 static const char *TAG = "Connect WiFi";
@@ -160,7 +161,27 @@ static void wifiConnect(void)
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(SC_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());    
+    ESP_ERROR_CHECK(esp_wifi_start());
+}
+
+
+void cb_connection_ok(void *pvParameter){
+	ip_event_got_ip_t* param = (ip_event_got_ip_t*)pvParameter;
+
+	/* transform IP to human readable string */
+	char str_ip[16];
+	esp_ip4addr_ntoa(&param->ip_info.ip, str_ip, IP4ADDR_STRLEN_MAX);
+
+	ESP_LOGI(TAG, "I have a connection and my IP is %s!", str_ip);
+}
+
+
+void monitoring_task(void *pvParameter)
+{
+	for(;;){
+		ESP_LOGI(TAG, "free heap: %ld",esp_get_free_heap_size());
+		vTaskDelay( pdMS_TO_TICKS(10000) );
+	}
 }
 
 
@@ -168,12 +189,19 @@ void wifiTask(void *pvParameters)
 {
     ESP_LOGI(TAG, "WiFi mode: Smart Config");
     // wifiConnect();
-    s_wifi_event_group = xEventGroupCreate();
+
+    /* Test captive portal */
+    wifi_manager_start();
+    wifi_manager_set_callback(WM_EVENT_STA_GOT_IP, &cb_connection_ok);
+
+    /* -------------------- */
+    // s_wifi_event_group = xEventGroupCreate();
     while(1){
-        EventBits_t uxBits = xEventGroupWaitBits(s_wifi_event_group, WIFI_TURN_ON_BIT, true, false, portMAX_DELAY);
-        if(uxBits & WIFI_TURN_ON_BIT) {
-            ESP_LOGI(TAG, "WIFI TURN ON");
-        }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        // EventBits_t uxBits = xEventGroupWaitBits(s_wifi_event_group, WIFI_TURN_ON_BIT, true, false, portMAX_DELAY);
+        // if(uxBits & WIFI_TURN_ON_BIT) {
+        //     ESP_LOGI(TAG, "WIFI TURN ON");
+        // }
+        // ESP_LOGI(TAG, "free heap: %ld",esp_get_free_heap_size());
+		vTaskDelay(pdMS_TO_TICKS(10000));
     }
 }
